@@ -35,7 +35,7 @@ max_notice = f'为防止滥用，管理员一天最多可添加{_max}次，若�
 
 若 `Releases` 中下载速度太慢或下载失败，可以尝试使用百度网盘下载
 
-[网盘下载](https://pan.baidu.com/s/1stHz2YFjGnvxglRt2G-XbQ?pwd=amls)
+[网盘下载](https://pan.baidu.com/s/1FbRtczF1h1jIov_CXU1qew?pwd=amls)
 提取码：amls
 
 ## 效果图
