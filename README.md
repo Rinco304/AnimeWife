@@ -47,3 +47,5 @@ max_notice = f'为防止滥用，管理员一天最多可添加{_max}次，若�
 | [dailywife](https://github.com/SonderXiaoming/dailywife) | [@SonderXiaoming](https://github.com/SonderXiaoming) |
 
 | [whattoeat](https://github.com/A-kirami/whattoeat) | [@A-kirami](https://github.com/A-kirami) |
+
+| [zbpwife](https://github.com/FloatTech/zbpwife) | [@A-kirami](https://github.com/A-kirami) |（绝大部分老婆图片都是出自这里，个人也添加了一些）
