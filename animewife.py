@@ -142,3 +142,157 @@ async def add_wife(bot,ev:CQEvent):
         mlmt.increase(uid)
     await bot.send(ev,'信息已增加~')
     
+#################################### 下面是交换老婆功能 #######################################
+import asyncio
+
+class ExchangeManager:
+    def __init__(self):
+        self.exchange_requests = {}
+        self.exchange_in_progress = {}  # 为每个群组添加交换进行标志
+
+    def insert_exchange_request(self, group_id, user_id, target_id):
+        group_id_str = str(group_id)
+        user_pair = f"{user_id}-{target_id}"
+        group_exchanges = self.exchange_requests.setdefault(group_id_str, {})
+        if user_pair not in group_exchanges:
+            group_exchanges[user_pair] = "pending"
+            self.exchange_in_progress[group_id_str] = True  # 标记该群组有交换正在进行
+
+    def remove_exchange_request(self, group_id, user_id, target_id):
+        group_id_str = str(group_id)
+        user_pair = f"{user_id}-{target_id}"
+        group_exchanges = self.exchange_requests.get(group_id_str, {})
+        if user_pair in group_exchanges:
+            del group_exchanges[user_pair]
+            if not group_exchanges:  # 如果该群组内没有其他交换请求
+                del self.exchange_requests[group_id_str]
+                self.exchange_in_progress[group_id_str] = False  # 更新该群组的交换进行标志
+    
+    def is_exchange_in_progress(self, group_id):
+        return self.exchange_in_progress.get(str(group_id), False)
+        
+    def is_eligible_for_exchange(self, group_id, user_id, target_id):
+        group_exchanges = self.exchange_requests.get(str(group_id), {})
+        if any(str(user_id) in key or str(target_id) in key for key in group_exchanges):
+            # 用户已经存在于当前任何一方的交换请求中
+            return False
+        return True
+        
+    def is_exchange_pending(self, group_id, user_id, target_id):
+        group_exchanges = self.exchange_requests.get(str(group_id), {})
+        user_pair = f"{user_id}-{target_id}"
+        return user_pair in group_exchanges and group_exchanges[user_pair] == "pending"
+        
+    async def handle_timeout(self, bot, ev, group_id, user_id, target_id, delay = 60):
+        await asyncio.sleep(delay)  # 默认等待60秒
+        # 检查请求是否仍然是pending状态，如果是，则移除
+        if self.is_exchange_pending(group_id, user_id, target_id):
+            self.remove_exchange_request(group_id, user_id, target_id)
+            # 发送交换超时的通知
+            await bot.send_group_msg(group_id=group_id, message=f"[CQ:at,qq={user_id}] 你的交换请求已超时，对方无视了你")
+            
+    def get_exchange_by_target(self, group_id, target_id):
+        group_id_str = str(group_id)
+        target_id_str = str(target_id)
+        group_exchanges = self.exchange_requests.get(group_id_str, {})
+        for key, status in group_exchanges.items():
+            if key.endswith(f"-{target_id_str}") and status == "pending":
+                return key.split('-')[0], key.split('-')[1]  # 返回发起者和目标者的ID
+        return None, None
+
+exchange_manager = ExchangeManager()
+
+@sv.on_prefix('交换老婆')
+@sv.on_suffix('交换老婆')
+async def exchange_wife(bot, ev: CQEvent):
+    # 获取QQ群、群用户QQ信息
+    group_id = ev.group_id
+    user_id = ev.user_id
+    target_id = None
+    today = str(datetime.date.today())
+    # 获取用户和目标用户的配置信息
+    config = load_group_config(group_id)
+    # 提取目标用户的QQ号
+    for seg in ev.message:
+        if seg.type == 'at' and seg.data['qq'] != 'all':
+            target_id = int(seg.data['qq'])
+            #print("提取目标用户的QQ号：" + str(target_id))
+            break
+    if not target_id:
+        #print("未找到目标用户QQ或者未@对方")
+        await bot.send(ev, '请指定一个要交换老婆的目标', at_sender=True)
+        return
+    # 检查发起者或目标者是否已经在任何交换中
+    if not exchange_manager.is_eligible_for_exchange(group_id, user_id, target_id):
+        await bot.send(ev, '双方有人正在进行换妻play中，请稍后再试', at_sender=True)
+        return
+    # 如果该群组有交换请求
+    if exchange_manager.is_exchange_in_progress(ev.group_id):
+        await bot.send(ev, '正在办理其他人的换妻手续，请稍后再试', at_sender=True)
+        return
+    # 检查是否尝试交换给自己
+    if user_id == target_id:
+        await bot.send(ev, '不能牛自己', at_sender=True)
+        return
+    if not config:
+        await bot.send(ev, '没有找到本群婚姻登记信息', at_sender=True)
+        return
+    # 检查用户和目标用户是否有老婆信息
+    if str(user_id) not in config or str(target_id) not in config:
+        await bot.send(ev, '需要双方都有老婆才能交换', at_sender=True)
+        return
+    # 检查用户的老婆信息是否是今天
+    if config[str(user_id)][1] != today:
+        await bot.send(ev, '您的老婆已过期，请抽取新的老婆后再交换', at_sender=True)
+        return
+    # 检查目标的老婆信息是否是今天
+    if config[str(target_id)][1] != today:
+        await bot.send(ev, '对方的老婆已过期，您也不想要过期的老婆吧', at_sender=True)
+        return
+    # 满足交换条件，添加进交换请求列表中
+    exchange_manager.insert_exchange_request(group_id, user_id, target_id)
+    # 发送交换请求
+    await bot.send(ev, f'[CQ:at,qq={target_id}] 用户 [CQ:at,qq={user_id}] 想要和你交换老婆，是否同意？\n如果同意(拒绝)请在60秒内发送“同意(拒绝)交换”', at_sender=False)
+    # 启动定时器，60秒后如果没有收到回应则自动清除交换请求
+    asyncio.create_task(exchange_manager.handle_timeout(bot, ev, group_id, user_id, target_id))
+
+async def handle_ex_wife(user_id, target_id, group_id, agree = False):
+    if agree:
+        config = load_group_config(group_id)
+        # 检索用户和目标用户的老婆信息
+        user_wife = config.get(str(user_id), [None])[0]
+        target_wife = config.get(str(target_id), [None])[0]
+        #print("发起用户老婆名称：" + str(user_wife) + "目标对象老婆名称：" + str(target_wife))
+        # 交换图片名
+        config[str(user_id)][0], config[str(target_id)][0] = target_wife, user_wife
+        
+        today = str(datetime.date.today())
+        # 更新群组配置文件
+        write_group_config(str(group_id), str(user_id), target_wife, today, config)
+        write_group_config(str(group_id), str(target_id), user_wife, today, config)
+    # 删除exchange_manager中对应的请求用户对记录
+    exchange_manager.remove_exchange_request(group_id, user_id, target_id)
+    
+@sv.on_message('group')
+async def ex_wife_reply(bot, ev: CQEvent):
+    # 如果该群组内没有交换请求
+    if not exchange_manager.is_exchange_in_progress(ev.group_id):
+        return
+    # 存在交换请求
+    group_id = ev.group_id
+    target_id = ev.user_id
+    #print("被请求者:" + str(target_id))
+    # 比对该用户是否是用户对中的被请求者
+    # 通过被请求者获取发起者id
+    initiator_id = exchange_manager.get_exchange_by_target(group_id, target_id)[0]
+    # 不为空则说明有记录
+    if initiator_id:
+        # 是被请求者，查看文本中是否包含关键词
+        keyword = "".join(seg.data['text'].strip() for seg in ev.message if seg.type == 'text')
+        # 检查关键词中是否包含“同意交换”，如果检测到了同意就执行交换
+        if '同意交换' in keyword:
+            await handle_ex_wife(initiator_id, target_id, group_id, True)
+            await bot.send(ev, '交换成功', at_sender=True)
+        elif '拒绝交换' in keyword:
+            await handle_ex_wife(initiator_id, target_id, group_id)
+            await bot.send(ev, '对方拒绝了你的交换请求', at_sender=True)
