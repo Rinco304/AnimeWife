@@ -301,7 +301,7 @@ async def ex_wife_reply(bot, ev: CQEvent):
         # 是被请求者，查看文本中是否包含关键词
         keyword = "".join(seg.data['text'].strip() for seg in ev.message if seg.type == 'text')
         # 检查关键词中是否包含“同意”，如果检测到了同意就执行交换
-        if '拒绝' or '不同意'in keyword:
+        if '拒绝' in keyword or '不同意'in keyword:
             await handle_ex_wife(initiator_id, target_id, group_id)
             await bot.send(ev, '对方拒绝了你的交换请求', at_sender=True)
         elif '同意' in keyword:
