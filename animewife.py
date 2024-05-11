@@ -45,6 +45,7 @@ sv_help = '''
 ※为防止bot被封号和数据污染请勿上传太涩与功能无关的图片※
 [交换老婆] @某人 + 交换老婆
 [牛老婆] 25%概率牛到别人老婆(2次/日)
+[查老婆] 加@某人可以查别人老婆
 [切换ntr开关状态]
 '''.strip()
 
@@ -420,3 +421,50 @@ async def switch_ntr(bot, ev: CQEvent):
     load_ntr_statuses()
     # 提示信息
     await bot.send(ev, 'NTR功能已' + ('开启' if ntr_statuses[group_id] else '关闭'), at_sender=True)
+    
+########### 查看别人老婆 ##############
+
+@sv.on_prefix('查老婆')
+@sv.on_suffix('查老婆')
+async def search_wife(bot, ev: CQEvent):
+    # 获取QQ群、群用户QQ信息
+    load_ntr_statuses()
+    group_id = str(ev.group_id)
+    target_id = None
+    today = str(datetime.date.today())
+    wife_name = None
+    # 提取目标用户的QQ号
+    for seg in ev.message:
+        if seg.type == 'at' and seg.data['qq'] != 'all':
+            target_id = int(seg.data['qq'])
+            break
+    # 如果没指定就是自己
+    target_id = target_id or str(ev.user_id)
+    # 获取用户和目标用户的配置信息
+    config = load_group_config(group_id)
+    if config is not None:
+        if str(target_id) in config:  # Making sure we're comparing strings with strings, or integers with integers
+            if config[str(target_id)][1] == today:
+                wife_name = config[str(target_id)][0]
+            else:
+                await bot.finish(ev, '查询的老婆已过期', at_sender=True)
+        else:
+            await bot.finish(ev, '未找到老婆信息！', at_sender=True)
+    else:
+        await bot.finish(ev, '群婚姻信息不存在！', at_sender=True)
+    # 分割文件名和扩展名，只取图片名返回给用户
+    name = wife_name.split('.')
+    # 生成返回结果
+    
+    member_info = await bot.get_group_member_info(self_id=ev.self_id, group_id=ev.group_id, user_id=target_id)
+    nick_name = member_info['card'] or member_info['nickname'] or member_info['user_id'] or '未找到对方id'
+    result = f'{str(nick_name)}的二次元老婆是{name[0]}哒~\n'
+    try:
+        # 尝试读取老婆图片，并添加到结果中
+        wifeimg = R.img(f'wife/{wife_name}').cqcode
+        result += str(wifeimg)
+    except Exception as e:
+        hoshino.logger.error(f'读取老婆图片时发生错误{type(e)}')
+        await bot.finish(ev, '读取老婆图片时发生错误', at_sender=True)
+    # 发送消息
+    await bot.send(ev,result,at_sender=True)
