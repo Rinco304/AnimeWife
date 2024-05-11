@@ -365,7 +365,7 @@ async def ntr_wife(bot, ev: CQEvent):
         # 删除双方老婆信息，将他人老婆信息改成自己的
         target_wife = config.get(str(target_id), [None])[0]
         del config[str(target_id)]
-        del config[str(user_id)]
+        config.pop(str(user_id), None)
         write_group_config(str(group_id), str(user_id), target_wife, today, config)
         await bot.send(ev, '你的阴谋已成功！', at_sender=True)
     else:
