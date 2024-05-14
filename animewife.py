@@ -403,8 +403,7 @@ async def ntr_wife(bot, ev: CQEvent):
     # 满足交换条件，添加进交换请求列表中
     exchange_manager.insert_exchange_request(group_id, user_id, target_id)
     # 牛老婆次数减少一次
-    if user_id not in hoshino.config.SUPERUSERS:
-        ntr_lmt.increase(user_id)
+    ntr_lmt.increase(user_id)
     if random.random() < ntr_possibility: 
         # 删除双方老婆信息，将他人老婆信息改成自己的
         target_wife = config.get(str(target_id), [None])[0]
@@ -413,7 +412,7 @@ async def ntr_wife(bot, ev: CQEvent):
         write_group_config(str(group_id), str(user_id), target_wife, today, config)
         await bot.send(ev, '你的阴谋已成功！', at_sender=True)
     else:
-        await bot.send(ev, f'你的阴谋失败了，黄毛被干掉了！你还有{_ntr_max - ntr_lmt.get_num(user_id) - 1}条命', at_sender=True)
+        await bot.send(ev, f'你的阴谋失败了，黄毛被干掉了！你还有{_ntr_max - ntr_lmt.get_num(user_id)}条命', at_sender=True)
     # 清除交换请求锁
     exchange_manager.remove_exchange_request(group_id, user_id, target_id)
     await asyncio.sleep(1)
