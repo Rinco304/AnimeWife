@@ -49,6 +49,7 @@ sv_help = '''
 [交换老婆] @某人 + 交换老婆
 [牛老婆] 25%概率牛到别人老婆(2次/日)
 [查老婆] 加@某人可以查别人老婆
+[重置牛老婆] 加@某人可以重置别人牛的次数
 [切换ntr开关状态]
 '''.strip()
 
@@ -130,13 +131,13 @@ async def add_wife(bot,ev:CQEvent):
     # 获取QQ信息
     uid = ev.user_id
     # 此注释的代码是仅限bot超级管理员使用，有需可启用并将下面判断权限的代码注释掉
-    # if uid not in hoshino.config.SUPERUSERS:
-    #     return
+    if uid not in hoshino.config.SUPERUSERS:
+        return
 
     # 判断权限，只有用户为群管理员或为bot设置的超级管理员才能使用
-    u_priv = priv.get_user_priv(ev)
-    if u_priv < sv.manage_priv:
-        return
+    # u_priv = priv.get_user_priv(ev)
+    # if u_priv < sv.manage_priv:
+        # return
     # 检查用户今天是否已添加过老婆信息
     if not mlmt.check(uid):
         await bot.send(ev, max_notice, at_sender=True)
@@ -348,7 +349,32 @@ async def ex_wife_reply(bot, ev: CQEvent):
             # 如果仅找到“同意”，或者“同意”在“不同意”或“拒绝”之前出现
             await handle_ex_wife(initiator_id, target_id, group_id, True)
             await bot.send(ev, '交换成功', at_sender=True)
-            
+
+# 重置牛老婆次数限制
+@sv.on_prefix('重置牛老婆')
+@sv.on_suffix('重置牛老婆')
+async def reset_ntr_wife(bot, ev: CQEvent):
+    # 获取QQ信息
+    uid = ev.user_id
+    # 此注释的代码是仅限bot超级管理员使用，有需可启用并将下面判断权限的代码注释掉
+    if uid not in hoshino.config.SUPERUSERS:
+        await bot.send(ev,"该功能仅限bot管理员使用")
+        return
+    # 判断权限，只有用户为群管理员或为bot设置的超级管理员才能使用
+    # u_priv = priv.get_user_priv(ev)
+    # if u_priv < sv.manage_priv:
+        # await bot.send(ev,"该功能仅限群管理员或为bot设置的超级管理员使用")
+        # return
+    target_id = None
+    # 提取目标用户的QQ号
+    for seg in ev.message:
+        if seg.type == 'at' and seg.data['qq'] != 'all':
+            target_id = int(seg.data['qq'])
+            break
+    if target_id is None:
+        await bot.finish(ev,"请@要重置的用户")
+    ntr_lmt.reset(target_id)
+    await bot.send(ev,"已重置次数")
 
 @sv.on_prefix('牛老婆')
 @sv.on_suffix('牛老婆')
