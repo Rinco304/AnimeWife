@@ -8,12 +8,13 @@
 
     `git clone https://github.com/Rinco304/AnimeWife`
 
-2. 下载 `Releases` 中的  [wife.rar](https://github.com/Rinco304/AnimeWife/releases/download/v1.0/wife.rar) 并将其解压到 `/res/img` 目录下 
+2. 下载 `Releases` 中的  [wife.rar](https://github.com/Rinco304/AnimeWife/releases/download/v1.0/wife.rar) 并将其解压到 `/res/img` 目录下
 
 3. 在 `config/__bot__.py`的模块列表里加入 `AnimeWife`
 
 4. 重启HoshinoBot
 
+2024-6-16：更新了一批新的老婆在 `Releases` 与网盘分享中，下载后将图片解压到 `/res/img/wife` 文件夹中即可 [wife2.rar](https://github.com/Rinco304/AnimeWife/releases/download/v1.0/wife2.rar)
 ## 怎么使用
 
 ```
